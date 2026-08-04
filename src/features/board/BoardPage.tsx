@@ -25,12 +25,16 @@ import { Column } from "./components/Column";
 import { ColumnOverlay } from "./components/ColumnOverlay";
 import { resolveCardDropPosition } from "./dndHelpers";
 import { createBoardKeyboardCoordinateGetter } from "./keyboardCoordinates";
-import { useBoardState } from "./hooks/useBoardState";
-import type { BoardCard, BoardColumn } from "./types";
+import { useBoardMutations } from "./hooks/useBoardMutations";
+import type { BoardCard, BoardColumn, BoardState } from "./types";
 
-export function BoardPage() {
+interface BoardPageProps {
+  boardId: string;
+  board: BoardState;
+}
+
+export function BoardPage({ boardId, board }: BoardPageProps) {
   const {
-    board,
     setTitle,
     addColumn,
     renameColumn,
@@ -40,7 +44,7 @@ export function BoardPage() {
     updateCard,
     deleteCard,
     moveCard,
-  } = useBoardState();
+  } = useBoardMutations(boardId);
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [activeColumn, setActiveColumn] = useState<BoardColumn | null>(null);
