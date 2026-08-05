@@ -15,18 +15,23 @@ import {
   horizontalListSortingStrategy,
   SortableContext,
 } from "@dnd-kit/sortable";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useIdentity } from "../../lib/identity";
 import { positionBetween } from "../../lib/positions";
+import { supabase } from "../../lib/supabase";
 import { AddColumnButton } from "./components/AddColumnButton";
 import { BoardHeader } from "./components/BoardHeader";
 import { CardModal } from "./components/CardModal";
 import { CardOverlay } from "./components/CardOverlay";
 import { Column } from "./components/Column";
 import { ColumnOverlay } from "./components/ColumnOverlay";
+import { Cursors } from "./components/Cursors";
 import { resolveCardDropPosition } from "./dndHelpers";
 import { createEchoTracker } from "./echoTracker";
 import { createBoardKeyboardCoordinateGetter } from "./keyboardCoordinates";
 import { useBoardMutations } from "./hooks/useBoardMutations";
+import { useCursors } from "./hooks/useCursors";
+import { usePresence } from "./hooks/usePresence";
 import { useRealtimeBoard } from "./hooks/useRealtimeBoard";
 import type { BoardCard, BoardColumn, BoardState } from "./types";
 
@@ -37,6 +42,7 @@ interface BoardPageProps {
 
 export function BoardPage({ boardId, board }: BoardPageProps) {
   const echoTracker = useMemo(() => createEchoTracker(), [boardId]);
+  const { identity, rename: renameSelf } = useIdentity();
 
   const {
     setTitle,
@@ -50,7 +56,36 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
     moveCard,
   } = useBoardMutations(boardId, echoTracker);
 
-  useRealtimeBoard(boardId, echoTracker);
+  const attachRealtime = useRealtimeBoard(boardId, echoTracker);
+  const { onlineUsers, attach: attachPresence } = usePresence();
+  const { cursors, attach: attachCursors, sendCursor } = useCursors(identity);
+
+  // The channel is created fresh inside this single effect (not memoized) because
+  // a Phoenix/Supabase channel instance can only be subscribed once, ever, even
+  // after unsubscribing — reusing one across React 18 StrictMode's dev-mode
+  // mount→cleanup→mount cycle throws "tried to join multiple times". Creating a
+  // new instance per effect run sidesteps that, and attaching every listener
+  // before the single subscribe() call keeps them from being missed.
+  useEffect(() => {
+    const channel = supabase.channel(`board:${boardId}`, { config: { presence: { key: identity.userId } } });
+    attachRealtime(channel);
+    attachPresence(channel);
+    attachCursors(channel);
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track(identity);
+      }
+    });
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [boardId, identity, attachRealtime, attachPresence, attachCursors]);
+
+  const onlineUserIds = useMemo(() => new Set(onlineUsers.map((u) => u.userId)), [onlineUsers]);
+  const visibleCursors = useMemo(
+    () => Array.from(cursors.values()).filter((c) => onlineUserIds.has(c.userId)),
+    [cursors, onlineUserIds],
+  );
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [activeColumn, setActiveColumn] = useState<BoardColumn | null>(null);
@@ -156,7 +191,13 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <BoardHeader title={board.title} onRename={setTitle} />
+      <BoardHeader
+        title={board.title}
+        onRename={setTitle}
+        onlineUsers={onlineUsers}
+        selfId={identity.userId}
+        onRenameSelf={renameSelf}
+      />
 
       <DndContext
         sensors={sensors}
@@ -169,33 +210,43 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
           setActiveColumn(null);
         }}
       >
-        <div className="flex flex-1 items-start gap-3 overflow-x-auto overflow-y-hidden px-6 py-4 scrollbar-gutter-stable">
-          <SortableContext
-            items={sortedColumns.map((c) => c.id)}
-            strategy={horizontalListSortingStrategy}
-          >
-            {sortedColumns.map((column) => (
-              <Column
-                key={column.id}
-                column={column}
-                cards={cardsByColumn.get(column.id) ?? []}
-                onRename={(title) => renameColumn(column.id, title)}
-                onDelete={() => {
-                  if (
-                    window.confirm(
-                      `Delete "${column.title}" and all its cards?`,
-                    )
-                  ) {
-                    deleteColumn(column.id);
-                  }
-                }}
-                onAddCard={(title) => addCard(column.id, title)}
-                onOpenCard={setOpenCardId}
-              />
-            ))}
-          </SortableContext>
+        <div
+          className="relative flex-1 overflow-hidden"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            sendCursor(e.clientX - rect.left, e.clientY - rect.top);
+          }}
+        >
+          <div className="flex h-full items-start gap-3 overflow-x-auto overflow-y-hidden px-6 py-4 scrollbar-gutter-stable">
+            <SortableContext
+              items={sortedColumns.map((c) => c.id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              {sortedColumns.map((column) => (
+                <Column
+                  key={column.id}
+                  column={column}
+                  cards={cardsByColumn.get(column.id) ?? []}
+                  onRename={(title) => renameColumn(column.id, title)}
+                  onDelete={() => {
+                    if (
+                      window.confirm(
+                        `Delete "${column.title}" and all its cards?`,
+                      )
+                    ) {
+                      deleteColumn(column.id);
+                    }
+                  }}
+                  onAddCard={(title) => addCard(column.id, title)}
+                  onOpenCard={setOpenCardId}
+                />
+              ))}
+            </SortableContext>
 
-          <AddColumnButton onAdd={addColumn} />
+            <AddColumnButton onAdd={addColumn} />
+          </div>
+
+          <Cursors cursors={visibleCursors} />
         </div>
 
         <DragOverlay
