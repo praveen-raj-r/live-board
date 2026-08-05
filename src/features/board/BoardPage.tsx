@@ -24,8 +24,10 @@ import { CardOverlay } from "./components/CardOverlay";
 import { Column } from "./components/Column";
 import { ColumnOverlay } from "./components/ColumnOverlay";
 import { resolveCardDropPosition } from "./dndHelpers";
+import { createEchoTracker } from "./echoTracker";
 import { createBoardKeyboardCoordinateGetter } from "./keyboardCoordinates";
 import { useBoardMutations } from "./hooks/useBoardMutations";
+import { useRealtimeBoard } from "./hooks/useRealtimeBoard";
 import type { BoardCard, BoardColumn, BoardState } from "./types";
 
 interface BoardPageProps {
@@ -34,6 +36,8 @@ interface BoardPageProps {
 }
 
 export function BoardPage({ boardId, board }: BoardPageProps) {
+  const echoTracker = useMemo(() => createEchoTracker(), [boardId]);
+
   const {
     setTitle,
     addColumn,
@@ -44,7 +48,9 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
     updateCard,
     deleteCard,
     moveCard,
-  } = useBoardMutations(boardId);
+  } = useBoardMutations(boardId, echoTracker);
+
+  useRealtimeBoard(boardId, echoTracker);
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [activeColumn, setActiveColumn] = useState<BoardColumn | null>(null);

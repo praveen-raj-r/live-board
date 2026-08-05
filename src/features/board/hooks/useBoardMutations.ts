@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { positionAtEnd } from '../../../lib/positions';
 import { supabase } from '../../../lib/supabase';
 import { boardQueryKey } from '../api';
+import type { EchoTracker } from '../echoTracker';
+import { columnFingerprint } from '../echoTracker';
 import type { BoardCard, BoardColumn, BoardState } from '../types';
 
 async function unwrap(response: PromiseLike<{ error: { message: string } | null }>): Promise<void> {
@@ -9,7 +11,7 @@ async function unwrap(response: PromiseLike<{ error: { message: string } | null 
   if (error) throw new Error(error.message);
 }
 
-export function useBoardMutations(boardId: string) {
+export function useBoardMutations(boardId: string, echoTracker: EchoTracker) {
   const queryClient = useQueryClient();
   const queryKey = boardQueryKey(boardId);
 
@@ -129,6 +131,8 @@ export function useBoardMutations(boardId: string) {
   }
 
   function renameColumn(id: string, title: string) {
+    const position = snapshot()?.columns.find((c) => c.id === id)?.position;
+    if (position !== undefined) echoTracker.mark(id, columnFingerprint(title, position));
     renameColumnMutation.mutate({ id, title });
   }
 
@@ -137,6 +141,8 @@ export function useBoardMutations(boardId: string) {
   }
 
   function reorderColumn(id: string, position: number) {
+    const title = snapshot()?.columns.find((c) => c.id === id)?.title;
+    if (title !== undefined) echoTracker.mark(id, columnFingerprint(title, position));
     reorderColumnMutation.mutate({ id, position });
   }
 
@@ -156,7 +162,9 @@ export function useBoardMutations(boardId: string) {
   }
 
   function updateCard(id: string, patch: Partial<Pick<BoardCard, 'title' | 'description'>>) {
-    updateCardMutation.mutate({ id, ...patch, updatedAt: new Date().toISOString() });
+    const updatedAt = new Date().toISOString();
+    echoTracker.mark(id, updatedAt);
+    updateCardMutation.mutate({ id, ...patch, updatedAt });
   }
 
   function deleteCard(id: string) {
@@ -164,7 +172,9 @@ export function useBoardMutations(boardId: string) {
   }
 
   function moveCard(cardId: string, columnId: string, position: number) {
-    moveCardMutation.mutate({ id: cardId, columnId, position, updatedAt: new Date().toISOString() });
+    const updatedAt = new Date().toISOString();
+    echoTracker.mark(cardId, updatedAt);
+    moveCardMutation.mutate({ id: cardId, columnId, position, updatedAt });
   }
 
   return {
