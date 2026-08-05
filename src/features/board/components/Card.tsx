@@ -27,11 +27,14 @@ export function Card({ card, onOpen }: CardProps) {
       {...attributes}
       {...listeners}
       className={cn(
-        'mb-2 block w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-left text-[13px] leading-snug text-text shadow-none transition-[box-shadow,transform,border-color] duration-150 hover:-translate-y-px hover:border-border-strong hover:shadow-sm',
+        'relative mb-2 block w-full overflow-hidden rounded-xl bg-surface py-2.5 pl-3.5 pr-3 text-left text-[13px] leading-snug text-text shadow-sm transition-[box-shadow,transform] duration-150 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-accent/60 before:transition-colors before:duration-150 hover:-translate-y-0.5 hover:shadow-md hover:before:bg-accent',
         isDragging && 'opacity-40',
       )}
     >
-      {card.title}
+      <div className="line-clamp-2">{card.title}</div>
+      {card.description ? (
+        <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-text-muted">{card.description}</div>
+      ) : null}
     </button>
   );
 }

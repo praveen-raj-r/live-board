@@ -11,7 +11,7 @@ export function ColumnOverlay({ column, cards }: { column: BoardColumn; cards: B
         {cards.slice(0, 4).map((card) => (
           <div
             key={card.id}
-            className="mb-2 rounded-lg border border-border bg-surface px-2.5 py-2 text-left text-[13px] leading-snug text-text"
+            className="relative mb-2 overflow-hidden rounded-xl bg-surface py-2.5 pl-3.5 pr-3 text-left text-[13px] leading-snug text-text shadow-sm before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-accent/60"
           >
             {card.title}
           </div>
