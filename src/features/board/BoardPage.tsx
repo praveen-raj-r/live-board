@@ -81,6 +81,13 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
     };
   }, [boardId, identity, attachRealtime, attachPresence, attachCursors]);
 
+  useEffect(() => {
+    document.title = `${board.title} · LiveBoard`;
+    return () => {
+      document.title = "LiveBoard";
+    };
+  }, [board.title]);
+
   const onlineUserIds = useMemo(() => new Set(onlineUsers.map((u) => u.userId)), [onlineUsers]);
   const visibleCursors = useMemo(
     () => Array.from(cursors.values()).filter((c) => onlineUserIds.has(c.userId)),
@@ -217,33 +224,42 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
             sendCursor(e.clientX - rect.left, e.clientY - rect.top);
           }}
         >
-          <div className="flex h-full items-start gap-3 overflow-x-auto overflow-y-hidden px-6 py-4 scrollbar-gutter-stable">
-            <SortableContext
-              items={sortedColumns.map((c) => c.id)}
-              strategy={horizontalListSortingStrategy}
-            >
-              {sortedColumns.map((column) => (
-                <Column
-                  key={column.id}
-                  column={column}
-                  cards={cardsByColumn.get(column.id) ?? []}
-                  onRename={(title) => renameColumn(column.id, title)}
-                  onDelete={() => {
-                    if (
-                      window.confirm(
-                        `Delete "${column.title}" and all its cards?`,
-                      )
-                    ) {
-                      deleteColumn(column.id);
-                    }
-                  }}
-                  onAddCard={(title) => addCard(column.id, title)}
-                  onOpenCard={setOpenCardId}
-                />
-              ))}
-            </SortableContext>
+          <div className="flex h-full items-start gap-3 overflow-x-auto overflow-y-hidden px-6 py-4 scrollbar-gutter-stable max-sm:snap-x max-sm:snap-mandatory">
+            {sortedColumns.length === 0 ? (
+              <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 text-center">
+                <p className="text-sm font-medium text-text-muted">This board is empty</p>
+                <AddColumnButton onAdd={addColumn} />
+              </div>
+            ) : (
+              <>
+                <SortableContext
+                  items={sortedColumns.map((c) => c.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {sortedColumns.map((column) => (
+                    <Column
+                      key={column.id}
+                      column={column}
+                      cards={cardsByColumn.get(column.id) ?? []}
+                      onRename={(title) => renameColumn(column.id, title)}
+                      onDelete={() => {
+                        if (
+                          window.confirm(
+                            `Delete "${column.title}" and all its cards?`,
+                          )
+                        ) {
+                          deleteColumn(column.id);
+                        }
+                      }}
+                      onAddCard={(title) => addCard(column.id, title)}
+                      onOpenCard={setOpenCardId}
+                    />
+                  ))}
+                </SortableContext>
 
-            <AddColumnButton onAdd={addColumn} />
+                <AddColumnButton onAdd={addColumn} />
+              </>
+            )}
           </div>
 
           <Cursors cursors={visibleCursors} />

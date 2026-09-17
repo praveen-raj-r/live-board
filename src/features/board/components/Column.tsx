@@ -37,7 +37,7 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex h-full w-72 shrink-0 flex-col rounded-xl border border-border bg-surface',
+        'flex h-full w-72 shrink-0 flex-col rounded-xl border border-border bg-surface max-sm:snap-center',
         isDragging && 'opacity-50',
       )}
     >

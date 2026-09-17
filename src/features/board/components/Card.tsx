@@ -27,7 +27,7 @@ export function Card({ card, onOpen }: CardProps) {
       {...attributes}
       {...listeners}
       className={cn(
-        'group relative mb-2 block w-full overflow-hidden rounded-xl bg-surface py-2.5 pl-3.5 pr-3 text-left text-[13px] leading-snug text-text shadow-sm transition-[box-shadow,transform] duration-150 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-accent/60 before:transition-colors before:duration-150 hover:-translate-y-0.5 hover:shadow-md hover:before:bg-accent',
+        'group relative mb-2 block w-full touch-none overflow-hidden rounded-xl bg-surface py-2.5 pl-3.5 pr-3 text-left text-[13px] leading-snug text-text shadow-sm transition-[box-shadow,transform] duration-150 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-accent/60 before:transition-colors before:duration-150 hover:-translate-y-0.5 hover:shadow-md hover:before:bg-accent',
         isDragging && 'opacity-40',
       )}
     >

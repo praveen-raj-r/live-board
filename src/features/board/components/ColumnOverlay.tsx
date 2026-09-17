@@ -2,7 +2,7 @@ import type { BoardCard, BoardColumn } from '../types';
 
 export function ColumnOverlay({ column, cards }: { column: BoardColumn; cards: BoardCard[] }) {
   return (
-    <div className="flex max-h-[70vh] w-72 scale-[1.02] flex-col rounded-xl border border-border-strong bg-surface shadow-lg">
+    <div className="flex max-h-[70vh] w-72 flex-col rounded-xl border border-border-strong bg-surface shadow-lg motion-safe:scale-[1.02]">
       <div className="flex items-center gap-2 px-3 pt-3 pb-2 text-[13px] font-semibold text-text">
         {column.title}
         <span className="text-[12px] font-normal tabular-nums text-text-faint">{cards.length}</span>
