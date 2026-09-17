@@ -81,10 +81,12 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
         </button>
       </div>
 
+      <AddCard onAdd={onAddCard} />
+
       <div
         ref={setBodyRef}
         className={cn(
-          'min-h-16 flex-1 overflow-y-auto px-2 pt-2 transition-colors',
+          'min-h-16 flex-1 overflow-y-auto px-2 pb-2 transition-colors',
           isOver && 'bg-accent-soft/40',
         )}
       >
@@ -96,8 +98,6 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
           )}
         </SortableContext>
       </div>
-
-      <AddCard onAdd={onAddCard} />
     </div>
   );
 }

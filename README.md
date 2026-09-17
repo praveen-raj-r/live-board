@@ -1,12 +1,14 @@
 # LiveBoard
 
+**[Live demo →](https://live-kanban-board.vercel.app/)**
+
 A single-page, real-time collaborative Kanban board. One board, shared via URL — no accounts, no onboarding, no settings.
 
 Built with Vite, React 18, TypeScript (strict), `@dnd-kit`, Tailwind CSS, TanStack Query, and Supabase (Postgres + Realtime).
 
 See [`liveboard-spec.md`](./liveboard-spec.md) for the full project spec.
 
-**Status:** Phases 1 and 2 are done (static board with full drag & drop, Supabase persistence, realtime sync, presence + live cursors). Phase 3 (final polish pass, deploy, demo recording) is in progress.
+**Status:** Shipped. Static board with full drag & drop, Supabase persistence, realtime sync, presence + live cursors, and the full polish pass are all done and deployed.
 
 ## How to Use
 

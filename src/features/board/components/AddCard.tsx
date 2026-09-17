@@ -18,30 +18,33 @@ export function AddCard({ onAdd }: AddCardProps) {
 
   return (
     <form
-      className="flex shrink-0 items-center gap-1 px-2 pb-2 pt-1"
+      className="flex shrink-0 items-center gap-1.5 px-2 pb-2"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      <input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="+ Add a card"
-        aria-label="Add a card"
-        enterKeyHint="done"
-        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-[13px] text-text placeholder:text-text-faint outline-none transition-colors hover:border-border focus:border-accent focus:bg-surface"
-      />
+      <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-border bg-bg px-2 py-1.5 transition-colors hover:border-border-strong focus-within:border-accent focus-within:bg-surface">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" className="shrink-0 text-text-faint" aria-hidden="true">
+          <path d="M8 3v10M3 8h10" strokeLinecap="round" />
+        </svg>
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Add a card"
+          aria-label="Add a card"
+          enterKeyHint="done"
+          className="w-full bg-transparent text-[13px] text-text placeholder:text-text-faint outline-none"
+        />
+      </div>
       {value.trim() ? (
         <button
           type="submit"
           aria-label="Add card"
-          className="shrink-0 rounded-md p-1.5 text-accent transition-colors hover:bg-accent-soft"
+          className="shrink-0 rounded-md bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-            <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-          </svg>
+          Add
         </button>
       ) : null}
     </form>
