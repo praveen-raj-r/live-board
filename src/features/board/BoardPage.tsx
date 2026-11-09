@@ -15,8 +15,11 @@ import {
   horizontalListSortingStrategy,
   SortableContext,
 } from "@dnd-kit/sortable";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useIdentity } from "../../lib/identity";
+import { useStableCallback } from "../../lib/useStableCallback";
+import { boardQueryKey } from "./api";
 import { positionBetween } from "../../lib/positions";
 import { supabase } from "../../lib/supabase";
 import { AddColumnButton } from "./components/AddColumnButton";
@@ -58,7 +61,8 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
 
   const attachRealtime = useRealtimeBoard(boardId, echoTracker);
   const { onlineUsers, attach: attachPresence } = usePresence();
-  const { cursors, attach: attachCursors, sendCursor } = useCursors(identity);
+  const { store: cursorStore, attach: attachCursors, sendCursor } = useCursors(identity);
+  const queryClient = useQueryClient();
 
   // The channel is created fresh inside this single effect (not memoized) because
   // a Phoenix/Supabase channel instance can only be subscribed once, ever, even
@@ -71,15 +75,22 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
     attachRealtime(channel);
     attachPresence(channel);
     attachCursors(channel);
+    let hasSubscribed = false;
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
+        // A SUBSCRIBED after the first one means the socket dropped and rejoined;
+        // Postgres Changes sent in between are gone, so resync the board.
+        if (hasSubscribed) {
+          void queryClient.invalidateQueries({ queryKey: boardQueryKey(boardId) });
+        }
+        hasSubscribed = true;
         await channel.track(identity);
       }
     });
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [boardId, identity, attachRealtime, attachPresence, attachCursors]);
+  }, [boardId, identity, queryClient, attachRealtime, attachPresence, attachCursors]);
 
   useEffect(() => {
     document.title = `${board.title} · LiveBoard`;
@@ -89,10 +100,15 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
   }, [board.title]);
 
   const onlineUserIds = useMemo(() => new Set(onlineUsers.map((u) => u.userId)), [onlineUsers]);
-  const visibleCursors = useMemo(
-    () => Array.from(cursors.values()).filter((c) => onlineUserIds.has(c.userId)),
-    [cursors, onlineUserIds],
-  );
+
+  const handleRenameColumn = useStableCallback((id: string, title: string) => renameColumn(id, title));
+  const handleAddCard = useStableCallback((columnId: string, title: string) => addCard(columnId, title));
+  const handleOpenCard = useStableCallback((cardId: string) => setOpenCardId(cardId));
+  const handleDeleteColumn = useStableCallback((column: BoardColumn) => {
+    if (window.confirm(`Delete "${column.title}" and all its cards?`)) {
+      deleteColumn(column.id);
+    }
+  });
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [activeColumn, setActiveColumn] = useState<BoardColumn | null>(null);
@@ -241,18 +257,10 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
                       key={column.id}
                       column={column}
                       cards={cardsByColumn.get(column.id) ?? []}
-                      onRename={(title) => renameColumn(column.id, title)}
-                      onDelete={() => {
-                        if (
-                          window.confirm(
-                            `Delete "${column.title}" and all its cards?`,
-                          )
-                        ) {
-                          deleteColumn(column.id);
-                        }
-                      }}
-                      onAddCard={(title) => addCard(column.id, title)}
-                      onOpenCard={setOpenCardId}
+                      onRename={handleRenameColumn}
+                      onDelete={handleDeleteColumn}
+                      onAddCard={handleAddCard}
+                      onOpenCard={handleOpenCard}
                     />
                   ))}
                 </SortableContext>
@@ -262,7 +270,7 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
             )}
           </div>
 
-          <Cursors cursors={visibleCursors} />
+          <Cursors store={cursorStore} onlineUserIds={onlineUserIds} />
         </div>
 
         <DragOverlay

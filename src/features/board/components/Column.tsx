@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { memo } from 'react';
 import { InlineEditable } from '../../../components/ui/InlineEditable';
 import { cn } from '../../../lib/cn';
 import { AddCard } from './AddCard';
@@ -10,13 +11,13 @@ import type { BoardCard, BoardColumn } from '../types';
 interface ColumnProps {
   column: BoardColumn;
   cards: BoardCard[];
-  onRename: (title: string) => void;
-  onDelete: () => void;
-  onAddCard: (title: string) => void;
+  onRename: (columnId: string, title: string) => void;
+  onDelete: (column: BoardColumn) => void;
+  onAddCard: (columnId: string, title: string) => void;
   onOpenCard: (cardId: string) => void;
 }
 
-export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCard }: ColumnProps) {
+export const Column = memo(function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCard }: ColumnProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: column.id,
     data: { type: 'column', columnId: column.id },
@@ -61,7 +62,7 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
 
         <InlineEditable
           value={column.title}
-          onSubmit={onRename}
+          onSubmit={(title) => onRename(column.id, title)}
           aria-label="Column title"
           className="flex-1 truncate text-[13px] font-semibold text-text"
           inputClassName="flex-1 text-[13px] font-semibold text-text"
@@ -71,7 +72,7 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
 
         <button
           type="button"
-          onClick={onDelete}
+          onClick={() => onDelete(column)}
           aria-label={`Delete ${column.title} column`}
           className="shrink-0 rounded-md p-1 text-text-faint transition-colors hover:bg-red-50 hover:text-red-600"
         >
@@ -81,7 +82,7 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
         </button>
       </div>
 
-      <AddCard onAdd={onAddCard} />
+      <AddCard onAdd={(title) => onAddCard(column.id, title)} />
 
       <div
         ref={setBodyRef}
@@ -94,10 +95,10 @@ export function Column({ column, cards, onRename, onDelete, onAddCard, onOpenCar
           {cards.length === 0 ? (
             <p className="px-1 py-3 text-center text-[12px] text-text-faint">Drop cards here</p>
           ) : (
-            cards.map((card) => <Card key={card.id} card={card} onOpen={() => onOpenCard(card.id)} />)
+            cards.map((card) => <Card key={card.id} card={card} onOpen={onOpenCard} />)
           )}
         </SortableContext>
       </div>
     </div>
   );
-}
+});

@@ -9,9 +9,38 @@ export interface CursorPosition extends Identity {
 
 const THROTTLE_MS = 40;
 
-/** Tracks remote cursors and exposes a throttled sender for our own, once attached to a channel. */
+/**
+ * External store for remote cursors. Lives outside React state on purpose: cursor
+ * messages arrive many times a second, and only the <Cursors> component should
+ * re-render for them — not the whole board.
+ */
+export interface CursorStore {
+  subscribe(listener: () => void): () => void;
+  getSnapshot(): ReadonlyMap<string, CursorPosition>;
+  set(cursor: CursorPosition): void;
+}
+
+function createCursorStore(): CursorStore {
+  let snapshot: ReadonlyMap<string, CursorPosition> = new Map();
+  const listeners = new Set<() => void>();
+  return {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    getSnapshot: () => snapshot,
+    set(cursor) {
+      const next = new Map(snapshot);
+      next.set(cursor.userId, cursor);
+      snapshot = next;
+      listeners.forEach((l) => l());
+    },
+  };
+}
+
+/** Receives remote cursors into a store and exposes a throttled sender for our own, once attached to a channel. */
 export function useCursors(self: Identity) {
-  const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
+  const [store] = useState(createCursorStore);
   const lastSentAt = useRef(0);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -20,14 +49,10 @@ export function useCursors(self: Identity) {
       channelRef.current = channel;
       channel.on('broadcast', { event: 'cursor' }, ({ payload }: { payload: CursorPosition }) => {
         if (payload.userId === self.userId) return;
-        setCursors((prev) => {
-          const next = new Map(prev);
-          next.set(payload.userId, payload);
-          return next;
-        });
+        store.set(payload);
       });
     },
-    [self.userId],
+    [self.userId, store],
   );
 
   const sendCursor = useCallback(
@@ -43,5 +68,5 @@ export function useCursors(self: Identity) {
     [self],
   );
 
-  return { cursors, attach, sendCursor };
+  return { store, attach, sendCursor };
 }

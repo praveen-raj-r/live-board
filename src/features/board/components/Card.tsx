@@ -1,14 +1,15 @@
 import { useSortable } from '@dnd-kit/sortable';
+import { memo } from 'react';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '../../../lib/cn';
 import type { BoardCard } from '../types';
 
 interface CardProps {
   card: BoardCard;
-  onOpen: () => void;
+  onOpen: (cardId: string) => void;
 }
 
-export function Card({ card, onOpen }: CardProps) {
+export const Card = memo(function Card({ card, onOpen }: CardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
     data: { type: 'card', columnId: card.columnId },
@@ -23,7 +24,7 @@ export function Card({ card, onOpen }: CardProps) {
     <button
       ref={setNodeRef}
       style={style}
-      onClick={onOpen}
+      onClick={() => onOpen(card.id)}
       {...attributes}
       {...listeners}
       className={cn(
@@ -40,4 +41,4 @@ export function Card({ card, onOpen }: CardProps) {
       </span>
     </button>
   );
-}
+});
