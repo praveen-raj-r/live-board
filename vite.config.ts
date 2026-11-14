@@ -5,4 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: 'happy-dom',
+    globals: true, // lets Testing Library auto-register its cleanup
+    setupFiles: ['./src/test/setup.ts'],
+  },
 })
