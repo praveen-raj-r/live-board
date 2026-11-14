@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../../lib/supabase';
@@ -74,5 +74,19 @@ describe('BoardPage: realtime channel', () => {
     await onStatus('CHANNEL_ERROR');
     await onStatus('SUBSCRIBED'); // rejoin
     expect(invalidate).toHaveBeenCalledExactlyOnceWith({ queryKey: boardQueryKey('b1') });
+  });
+
+  it('shows a reconnecting banner while the channel is down and hides it on rejoin', async () => {
+    const { subscribe } = setup();
+    const onStatus = subscribe.mock.calls[0][0] as (s: string) => Promise<void>;
+
+    await act(() => onStatus('SUBSCRIBED'));
+    expect(screen.queryByText(/Reconnecting/)).toBeNull();
+
+    await act(() => onStatus('CHANNEL_ERROR'));
+    expect(screen.getByText(/Reconnecting/)).toBeInTheDocument();
+
+    await act(() => onStatus('SUBSCRIBED'));
+    expect(screen.queryByText(/Reconnecting/)).toBeNull();
   });
 });

@@ -24,6 +24,8 @@ import { positionBetween } from "../../lib/positions";
 import { supabase } from "../../lib/supabase";
 import { AddColumnButton } from "./components/AddColumnButton";
 import { BoardHeader } from "./components/BoardHeader";
+import { ConnectionBanner } from "./components/ConnectionBanner";
+import { nextConnectionState, type ConnectionState } from "./connection";
 import { CardModal } from "./components/CardModal";
 import { CardOverlay } from "./components/CardOverlay";
 import { Column } from "./components/Column";
@@ -63,6 +65,7 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
   const { onlineUsers, attach: attachPresence } = usePresence();
   const { store: cursorStore, attach: attachCursors, sendCursor } = useCursors(identity);
   const queryClient = useQueryClient();
+  const [connection, setConnection] = useState<ConnectionState>("connecting");
 
   // The channel is created fresh inside this single effect (not memoized) because
   // a Phoenix/Supabase channel instance can only be subscribed once, ever, even
@@ -76,7 +79,9 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
     attachPresence(channel);
     attachCursors(channel);
     let hasSubscribed = false;
+    let disposed = false;
     channel.subscribe(async (status) => {
+      if (!disposed) setConnection((current) => nextConnectionState(current, status));
       if (status === "SUBSCRIBED") {
         // A SUBSCRIBED after the first one means the socket dropped and rejoined;
         // Postgres Changes sent in between are gone, so resync the board.
@@ -88,6 +93,7 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
       }
     });
     return () => {
+      disposed = true;
       supabase.removeChannel(channel);
     };
   }, [boardId, identity, queryClient, attachRealtime, attachPresence, attachCursors]);
@@ -221,6 +227,7 @@ export function BoardPage({ boardId, board }: BoardPageProps) {
         selfId={identity.userId}
         onRenameSelf={renameSelf}
       />
+      <ConnectionBanner state={connection} />
 
       <DndContext
         sensors={sensors}
