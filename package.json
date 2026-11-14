@@ -10,6 +10,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "size": "node scripts/size.mjs",
+    "e2e": "node scripts/e2e.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
@@ -34,6 +36,7 @@
     "@vitejs/plugin-react": "^6.0.4",
     "happy-dom": "^21.0.4",
     "oxlint": "^1.75.0",
+    "supabase": "^3.1.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
