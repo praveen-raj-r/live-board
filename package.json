@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "size": "node scripts/size.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
