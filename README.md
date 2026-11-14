@@ -1,5 +1,8 @@
 # LiveBoard
 
+[![CI](https://github.com/praveen-raj-r/live-board/actions/workflows/ci.yml/badge.svg)](https://github.com/praveen-raj-r/live-board/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **[Live demo →](https://live-kanban-board.vercel.app/)**
 
 A single-page, real-time collaborative Kanban board. One board, shared via URL — no accounts, no onboarding, no settings.
@@ -19,6 +22,45 @@ See [`liveboard-spec.md`](./liveboard-spec.md) for the full project spec.
 - **Cards.** Type into a column's **+ Add a card** field and press Enter (or tap the **+** button) to add one. Click a card to open it and edit its title/description or delete it — changes save automatically as you leave each field. Drag a card to reorder it within a column or move it to another column.
 - **Keyboard drag.** Tab to a card or column's drag handle, press Space to lift it, use the arrow keys to move it (including into other columns), and press Space again to drop it.
 - **Collaborators.** Everyone currently on the board shows up as a colored initials chip in the header — click your own chip to change your display name — and you'll see everyone else's mouse cursor moving live on the board.
+
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph Browser A
+    UI_A[React UI] --> Cache_A[(TanStack Query cache)]
+    UI_A -- drag / edit --> Mut_A[Optimistic mutation]
+    Mut_A -- patch immediately --> Cache_A
+  end
+  Mut_A -- write --> PG[(Postgres via PostgREST)]
+  PG -- Postgres Changes --> RT{{Realtime channel board:id}}
+  RT -- patch cache, skip own echo --> Cache_B
+  subgraph Browser B
+    Cache_B[(TanStack Query cache)] --> UI_B[React UI]
+  end
+  UI_A <-. presence + cursor broadcast .-> RT
+  RT <-. presence + cursor broadcast .-> UI_B
+```
+
+A local edit is applied to the cache first, then written. The database change comes back to every client over the board's Realtime channel; the client that made it recognises its own echo and ignores it. If the channel drops and rejoins, the board is refetched.
+
+## Design choices worth knowing
+
+The reasoning and the trade-off for each is in [docs/decisions.md](docs/decisions.md): the share-by-URL access model (and exactly what the open RLS policies allow), one channel per board, optimistic updates with echo suppression, last-write-wins conflicts, float fractional ordering, building on dnd-kit primitives, and TanStack Query as the only data store. Setup, migrations and how to run the tests are in [docs/development.md](docs/development.md).
+
+## Known gaps
+
+- **Not private.** The Supabase policies are fully open. Anyone with the public anon key can read, edit and delete every board, with no link needed. See [decisions.md](docs/decisions.md#what-anyone-can-do-read-write-delete).
+- A failed write rolls the UI back **silently**; there is no error message and no retry.
+- A query error shows "Board not found", even if the cause is the network.
+- Conflicts are last-write-wins, ordered by client clocks.
+- The echo tracker keeps one fingerprint per row, so two quick edits to one row can let a stale echo through (from reading the code; not reproduced).
+- Visiting `/` always creates a new board.
+- Cursor positions ignore horizontal scroll.
+- The card modal has no focus trap.
+- No error monitoring, no code splitting (one JS chunk).
+- Offline/reconnect is unit-tested with a fake channel but not covered by an end-to-end test.
+- The CI workflows had not run on GitHub when this was written.
 
 ## Architecture
 
@@ -51,7 +93,7 @@ Two people editing the same card resolve by `updated_at` — whichever write rea
 ### Data model tradeoffs
 
 - **Fractional-index positions.** `position` is a float; inserting between two rows takes their midpoint, appending takes `max + 1000`. No renormalization job exists — float precision is fine at demo scale, but a board that saw thousands of same-slot inserts would eventually run out of usable precision between two adjacent positions. A renormalization pass (rewrite all positions in a column to clean multiples of 1000) is the fix if that ever mattered.
-- **Public RLS policies.** There's no auth in v1, so `liveboard_boards/columns/cards` have a single permissive policy each — `FOR ALL TO public USING (true)`. Anyone with a board's URL has full read/write access to it, which is the intended design (a public, link-shared board), but it does mean the URL itself is the only access control. Deliberately scoped `TO public` rather than `TO anon`: this Supabase project is shared with another app that has real authenticated users, and a policy scoped `TO anon` would be *denied* (not leaked — denied) for an authenticated request, which would make LiveBoard behave inconsistently depending on who's logged into the other app in the same browser.
+- **Public RLS policies.** There's no auth in v1, so `liveboard_boards/columns/cards` have a single permissive policy each — `FOR ALL TO public USING (true)`. Anyone with a board's URL can read and edit it, which is the intended design (a public, link-shared board). Note the URL is not a real access control: the policies do not check it, so anyone holding the public anon key can query every board (details in [docs/decisions.md](docs/decisions.md#what-anyone-can-do-read-write-delete)). Deliberately scoped `TO public` rather than `TO anon`: this Supabase project is shared with another app that has real authenticated users, and a policy scoped `TO anon` would be *denied* (not leaked — denied) for an authenticated request, which would make LiveBoard behave inconsistently depending on who's logged into the other app in the same browser.
 
 ### Bugs found building this (kept here because they were the interesting part)
 
@@ -63,11 +105,16 @@ Two people editing the same card resolve by `updated_at` — whichever write rea
 ## Development
 
 ```bash
-npm install
+npm ci
+cp .env.example .env.local   # fill in your Supabase URL and anon key
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` and fill in your Supabase project URL and anon/publishable key.
+See [docs/development.md](docs/development.md) for migrations, tests and e2e.
+
+## License
+
+[MIT](LICENSE)
 
 ## Future Work
 
