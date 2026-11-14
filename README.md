@@ -60,7 +60,7 @@ The reasoning and the trade-off for each is in [docs/decisions.md](docs/decision
 - The card modal has no focus trap.
 - No error monitoring, no code splitting (one JS chunk).
 - Offline/reconnect is unit-tested with a fake channel but not covered by an end-to-end test.
-- The CI workflows had not run on GitHub when this was written.
+- CI has run on GitHub: both `check` and `e2e` passed on `master` on 2026-11-14. Only pushes to `master` run `e2e`, so pull requests are not covered by it.
 
 ## Architecture
 

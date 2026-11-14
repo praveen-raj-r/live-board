@@ -78,4 +78,4 @@ Run `npm test` from PowerShell or cmd, not Git Bash. From Git Bash the repositor
 - `check` (pushes to `master`, all pull requests): `npm ci`, lint, typecheck, test, build (with placeholder Supabase env values), then the bundle size report. The size step never fails the job.
 - `e2e` (pushes to `master` only): installs Chromium, starts local Supabase, runs `npm run e2e`, and uploads `playwright-report/` and `test-results/` if it fails.
 
-Neither job had run on GitHub when this was written (**unverified there**); the same commands were run locally.
+Both jobs passed on GitHub on `master` on 2026-11-14.

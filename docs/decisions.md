@@ -147,7 +147,7 @@ I have not changed these policies. Tightening them (for example a per-board secr
 - **Unit and integration (Vitest, happy-dom, Testing Library).** Pure logic (positions, echo tracker, drop-position resolution, `cn`, identity), hooks against a fake Supabase builder and fake channel (no network), and components. The fakes are in `src/test/fakes.ts`. A fake can drift from the real client; the e2e suite is the check on that.
 - **End to end (Playwright).** Two browser contexts against a real local Supabase stack (`supabase start`: Postgres, PostgREST, Realtime). It exercises card sync, drag reorder, presence and cursors. It does not cover offline/reconnect, column operations or the card modal.
 - **Why local Supabase rather than a stub.** A hand-written stub of the Realtime socket would test my emulation of the protocol, not Supabase.
-- **CI.** `check` runs lint, typecheck, unit tests and build on pushes and pull requests; `e2e` runs only on pushes to `master`. **Unverified:** neither job had run on GitHub at the time of writing.
+- **CI.** `check` runs lint, typecheck, unit tests and build on pushes and pull requests; `e2e` runs only on pushes to `master`. Both jobs passed on GitHub on `master` on 2026-11-14 (`e2e` ran against a Supabase stack started on the runner).
 
 ## 12. Tooling
 
