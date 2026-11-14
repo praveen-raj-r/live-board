@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
     environment: 'happy-dom',
+    include: ['src/**/*.test.{ts,tsx}'], // keep Playwright specs in e2e/ out of Vitest
     globals: true, // lets Testing Library auto-register its cleanup
     setupFiles: ['./src/test/setup.ts'],
     // src/lib/supabase.ts throws without these. Tests use a fake client, so dummy values keep them independent of any real .env.
